@@ -196,8 +196,9 @@ loadBtn.onclick=async()=>{
   'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd';
 
   
+
 await ffmpeg.load({
- 
+  classWorkerURL: await toBlobURL(
     'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm/worker.js',
     'text/javascript'
   ),
@@ -212,6 +213,7 @@ await ffmpeg.load({
     'application/wasm'
   )
 });
+
 
 
   loaded=true;

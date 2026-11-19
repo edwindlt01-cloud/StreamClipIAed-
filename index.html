@@ -6,16 +6,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#11101d">
 <title>StreamClipIAed</title>
+
 <style>
 *{box-sizing:border-box}
 body{
- margin:0;background:#11101d;color:white;
- font-family:Arial,sans-serif;padding:20px;
+ margin:0;padding:18px;
+ background:#11101d;color:white;
+ font-family:Arial,sans-serif;
 }
 header{text-align:center;margin:15px 0 25px}
-.logo{font-size:35px}
-h1{color:#b69aff;margin:8px}
-p{color:#aaa}
+h1{color:#b69aff}
+p{color:#bbb;line-height:1.5}
 .card{
  background:#201d30;padding:17px;
  border-radius:17px;margin-bottom:17px;
@@ -27,30 +28,36 @@ button,.upload{
  font-weight:bold;font-size:15px;
  margin-top:12px;text-align:center;
 }
+button:disabled{opacity:.45}
 input[type=file]{display:none}
 input[type=number]{
- width:100%;padding:12px;border-radius:9px;
- background:#302b43;color:white;
- border:1px solid #62547e;margin:8px 0;
+ width:100%;padding:12px;
+ border-radius:9px;background:#302b43;
+ color:white;border:1px solid #62547e;
+ margin:8px 0;
 }
-video{width:100%;border-radius:12px;background:#000}
 label{display:block;margin-top:12px;color:#c8b5ff}
+video{width:100%;border-radius:12px;background:#000}
 small{color:#aaa}
-#status{color:#b69aff;margin-top:12px}
+#status{color:#c5aaff;overflow-wrap:anywhere}
+progress{width:100%;height:15px;accent-color:#a47aff}
+.logo{font-size:38px}
 </style>
 </head>
+
 <body>
 
 <header>
  <div class="logo">🎬</div>
  <h1>StreamClipIAed</h1>
  <p>Tu estudio de clips inteligentes</p>
+ <small>Editor gratuito para creadores</small>
 </header>
 
 <div class="card">
  <h3>📁 Importar video</h3>
  <label class="upload" for="videoFile">
-  Seleccionar video del teléfono
+ Seleccionar video del teléfono
  </label>
  <input type="file" id="videoFile" accept="video/*">
  <p id="fileName">Ningún video seleccionado</p>
@@ -63,7 +70,7 @@ small{color:#aaa}
 </div>
 
 <div class="card">
- <h3>✂️ Crear mi clip</h3>
+ <h3>✂️ Editor de clips</h3>
 
  <label>Inicio (segundos)</label>
  <input type="number" id="start" value="0" min="0" step="0.1">
@@ -71,79 +78,235 @@ small{color:#aaa}
  <label>Final (segundos)</label>
  <input type="number" id="end" value="15" min="0" step="0.1">
 
- <button onclick="previewClip()">
-  ▶ Previsualizar clip
- </button>
+ <button id="previewBtn">▶ Previsualizar clip</button>
+</div>
 
- <p id="status">Esperando video...</p>
+<div class="card">
+ <h3>📱 Formato de exportación</h3>
+ <p>Resolución: 1080 × 1920</p>
+ <p>Formato: MP4</p>
+ <p>Orientación: Vertical 9:16</p>
+ <p>Audio: AAC</p>
+ <button id="loadBtn">⚡ Activar motor FFmpeg</button>
+ <button id="exportBtn" disabled>✂️ Exportar mi clip MP4</button>
+ <progress id="progress" value="0" max="1"></progress>
+ <p id="status">Primero selecciona un video.</p>
+ <a id="download" style="display:none;color:#c5aaff">
+ Descargar mi clip MP4
+ </a>
 </div>
 
 <div class="card">
  <h3>🤖 Próximamente: IA</h3>
- <p>Detección automática de momentos interesantes.</p>
+ <p>✨ Detectar momentos interesantes.</p>
  <p>✨ Subtítulos automáticos.</p>
- <p>📱 Formato vertical para TikTok.</p>
+ <p>✨ Selección inteligente de clips.</p>
 </div>
 
-<script>
-const fileInput=document.getElementById('videoFile');
+<script type="module">
+
+import { FFmpeg } from
+'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js';
+
+import { fetchFile, toBlobURL } from
+'https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.2/dist/esm/index.js';
+
 const video=document.getElementById('video');
+const fileInput=document.getElementById('videoFile');
 const startInput=document.getElementById('start');
 const endInput=document.getElementById('end');
 const status=document.getElementById('status');
+const loadBtn=document.getElementById('loadBtn');
+const exportBtn=document.getElementById('exportBtn');
+const progress=document.getElementById('progress');
+const download=document.getElementById('download');
+
+const ffmpeg=new FFmpeg();
 
 let videoURL=null;
+let outputURL=null;
+let selectedFile=null;
 let stopAt=null;
+let loaded=false;
+let working=false;
 
 fileInput.addEventListener('change',()=>{
  const file=fileInput.files[0];
  if(!file)return;
 
+ selectedFile=file;
+
  if(videoURL)URL.revokeObjectURL(videoURL);
+ if(outputURL)URL.revokeObjectURL(outputURL);
+
  videoURL=URL.createObjectURL(file);
  video.src=videoURL;
 
- document.getElementById('fileName').textContent=file.name;
+ document.getElementById('fileName').textContent=
+ file.name+" ("+(file.size/1024/1024).toFixed(1)+" MB)";
+
+ download.style.display='none';
  status.textContent="Video cargado correctamente.";
 });
 
 video.addEventListener('loadedmetadata',()=>{
+ const d=video.duration;
  document.getElementById('duration').textContent=
- "Duración: "+video.duration.toFixed(1)+" segundos";
+ "Duración: "+d.toFixed(1)+" segundos";
 
- endInput.value=Math.min(15,video.duration);
- endInput.max=video.duration;
- startInput.max=video.duration;
+ endInput.value=Math.min(15,d);
+ endInput.max=d;
+ startInput.max=d;
 });
 
-function previewClip(){
- if(!videoURL){
-  status.textContent="Primero selecciona un video.";
+document.getElementById('previewBtn').onclick=()=>{
+ if(!selectedFile){
+  status.textContent="Selecciona primero un video.";
   return;
  }
 
- const start=Number(startInput.value);
- const end=Number(endInput.value);
+ const a=Number(startInput.value);
+ const b=Number(endInput.value);
 
- if(start<0||end<=start||end>video.duration){
-  status.textContent="Revisa el inicio y el final.";
+ if(a<0||b<=a||b>video.duration){
+  status.textContent="Revisa los tiempos.";
   return;
  }
 
- stopAt=end;
- video.currentTime=start;
+ stopAt=b;
+ video.currentTime=a;
  video.play();
- status.textContent="Reproduciendo el fragmento elegido.";
-}
+};
 
 video.addEventListener('timeupdate',()=>{
  if(stopAt!==null&&video.currentTime>=stopAt){
   video.pause();
   stopAt=null;
-  status.textContent="Previsualización terminada.";
  }
 });
-</script>
 
+loadBtn.onclick=async()=>{
+ if(loaded)return;
+
+ loadBtn.disabled=true;
+ status.textContent="Descargando motor de video. Espera...";
+
+ try{
+  const base=
+  'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd';
+
+  await ffmpeg.load({
+   coreURL:await toBlobURL(
+    base+'/ffmpeg-core.js','text/javascript'),
+   wasmURL:await toBlobURL(
+    base+'/ffmpeg-core.wasm','application/wasm')
+  });
+
+  loaded=true;
+  exportBtn.disabled=false;
+  loadBtn.textContent="Motor FFmpeg activado";
+  status.textContent="¡Motor listo para exportar!";
+ }catch(error){
+  status.textContent="Error al cargar FFmpeg: "+error.message;
+  loadBtn.disabled=false;
+ }
+};
+
+ffmpeg.on('progress',({progress:p})=>{
+ if(Number.isFinite(p)){
+  progress.value=Math.max(0,Math.min(1,p));
+ }
+});
+
+exportBtn.onclick=async()=>{
+ if(!selectedFile||!loaded||working)return;
+
+ const a=Number(startInput.value);
+ const b=Number(endInput.value);
+ const duration=b-a;
+
+ if(a<0||duration<=0||b>video.duration){
+  status.textContent="Los tiempos seleccionados no son válidos.";
+  return;
+ }
+
+ if(duration>120){
+  const ok=confirm(
+   "Este clip dura más de 2 minutos. La exportación puede tardar mucho y consumir bastante memoria. ¿Continuar?"
+  );
+  if(!ok)return;
+ }
+
+ working=true;
+ exportBtn.disabled=true;
+ loadBtn.disabled=true;
+ progress.value=0;
+
+ status.textContent="Preparando video...";
+
+ try{
+  const ext=selectedFile.name.split('.').pop();
+  const inputName='entrada.'+
+   (ext&&/^[a-z0-9]+$/i.test(ext)?ext:'mp4');
+
+  await ffmpeg.writeFile(
+   inputName,
+   await fetchFile(selectedFile)
+  );
+
+  status.textContent="Exportando MP4 vertical 1080p...";
+
+  const result=await ffmpeg.exec([
+   '-ss',String(a),
+   '-i',inputName,
+   '-t',String(duration),
+   '-map','0:v:0',
+   '-map','0:a?',
+   '-vf',
+   'scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30',
+   '-c:v','libx264',
+   '-preset','ultrafast',
+   '-crf','23',
+   '-pix_fmt','yuv420p',
+   '-c:a','aac',
+   '-b:a','128k',
+   '-movflags','+faststart',
+   '-y','salida.mp4'
+  ]);
+
+  if(result!==0)throw new Error("FFmpeg no pudo terminar.");
+
+  const data=await ffmpeg.readFile('salida.mp4');
+
+  if(outputURL)URL.revokeObjectURL(outputURL);
+
+  outputURL=URL.createObjectURL(
+   new Blob([data],{type:'video/mp4'})
+  );
+
+  download.href=outputURL;
+  download.download='StreamClipIAed.mp4';
+  download.textContent='⬇ Descargar clip MP4';
+  download.style.display='block';
+
+  status.textContent="¡Exportación terminada!";
+  progress.value=1;
+
+  await ffmpeg.deleteFile(inputName);
+  await ffmpeg.deleteFile('salida.mp4');
+
+ }catch(error){
+  status.textContent=
+  "No se pudo exportar: "+error.message+
+  ". Prueba con un video más corto o pequeño.";
+
+ }finally{
+  working=false;
+  exportBtn.disabled=false;
+  loadBtn.disabled=false;
+ }
+};
+
+</script>
 </body>
 </html>

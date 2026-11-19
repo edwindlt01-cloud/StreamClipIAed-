@@ -105,9 +105,11 @@ progress{width:100%;height:15px;accent-color:#a47aff}
 
 <script type="module">
 
-import { FFmpeg } from '@ffmpeg/ffmpeg';
-import { fetchFile, toBlobURL } from '@ffmpeg/util';
+import { FFmpeg } from
+'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js';
 
+import { fetchFile, toBlobURL } from
+'https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.2/dist/esm/index.js';
 
 const video=document.getElementById('video');
 const fileInput=document.getElementById('videoFile');
@@ -190,41 +192,23 @@ loadBtn.onclick=async()=>{
  status.textContent="Descargando motor de video. Espera...";
 
  try{
- const base =
-'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm';
+  const base=
+  'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd';
 
-
-  
-
-
-await ffmpeg.load({
+  await ffmpeg.load({
   coreURL: await toBlobURL(
-    base + '/ffmpeg-core.js',
+    base+'/ffmpeg-core.js',
     'text/javascript'
   ),
   wasmURL: await toBlobURL(
-    base + '/ffmpeg-core.wasm',
+    base+'/ffmpeg-core.wasm',
     'application/wasm'
-  )
-});
-
-  classWorkerURL: await toBlobURL(
-    'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm/worker.js',
-    'text/javascript'
   ),
-
-  coreURL: await toBlobURL(
-    base + '/ffmpeg-core.js',
+  workerURL: await toBlobURL(
+    base+'/ffmpeg-core.worker.js',
     'text/javascript'
-  ),
-
-  wasmURL: await toBlobURL(
-    base + '/ffmpeg-core.wasm',
-    'application/wasm'
-  )
+)
 });
-
-
 
   loaded=true;
   exportBtn.disabled=false;

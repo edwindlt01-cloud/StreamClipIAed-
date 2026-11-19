@@ -71,7 +71,8 @@ video{width:100%;border-radius:12px;background:#000}
 </div>
 </div>
 
-<script>
+<script type="module">
+import { pipeline } from '@huggingface/transformers';
 const file = document.getElementById('file');
 const video = document.getElementById('video');
 const start = document.getElementById('start');

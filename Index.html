@@ -1,0 +1,149 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#11101d">
+<title>StreamClipIAed</title>
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#11101d;color:white;
+ font-family:Arial,sans-serif;padding:20px;
+}
+header{text-align:center;margin:15px 0 25px}
+.logo{font-size:35px}
+h1{color:#b69aff;margin:8px}
+p{color:#aaa}
+.card{
+ background:#201d30;padding:17px;
+ border-radius:17px;margin-bottom:17px;
+}
+button,.upload{
+ display:block;width:100%;padding:14px;
+ border:0;border-radius:12px;
+ background:#9065ee;color:white;
+ font-weight:bold;font-size:15px;
+ margin-top:12px;text-align:center;
+}
+input[type=file]{display:none}
+input[type=number]{
+ width:100%;padding:12px;border-radius:9px;
+ background:#302b43;color:white;
+ border:1px solid #62547e;margin:8px 0;
+}
+video{width:100%;border-radius:12px;background:#000}
+label{display:block;margin-top:12px;color:#c8b5ff}
+small{color:#aaa}
+#status{color:#b69aff;margin-top:12px}
+</style>
+</head>
+<body>
+
+<header>
+ <div class="logo">🎬</div>
+ <h1>StreamClipIAed</h1>
+ <p>Tu estudio de clips inteligentes</p>
+</header>
+
+<div class="card">
+ <h3>📁 Importar video</h3>
+ <label class="upload" for="videoFile">
+  Seleccionar video del teléfono
+ </label>
+ <input type="file" id="videoFile" accept="video/*">
+ <p id="fileName">Ningún video seleccionado</p>
+</div>
+
+<div class="card">
+ <h3>🎥 Reproductor</h3>
+ <video id="video" controls playsinline></video>
+ <p id="duration">Duración: --</p>
+</div>
+
+<div class="card">
+ <h3>✂️ Crear mi clip</h3>
+
+ <label>Inicio (segundos)</label>
+ <input type="number" id="start" value="0" min="0" step="0.1">
+
+ <label>Final (segundos)</label>
+ <input type="number" id="end" value="15" min="0" step="0.1">
+
+ <button onclick="previewClip()">
+  ▶ Previsualizar clip
+ </button>
+
+ <p id="status">Esperando video...</p>
+</div>
+
+<div class="card">
+ <h3>🤖 Próximamente: IA</h3>
+ <p>Detección automática de momentos interesantes.</p>
+ <p>✨ Subtítulos automáticos.</p>
+ <p>📱 Formato vertical para TikTok.</p>
+</div>
+
+<script>
+const fileInput=document.getElementById('videoFile');
+const video=document.getElementById('video');
+const startInput=document.getElementById('start');
+const endInput=document.getElementById('end');
+const status=document.getElementById('status');
+
+let videoURL=null;
+let stopAt=null;
+
+fileInput.addEventListener('change',()=>{
+ const file=fileInput.files[0];
+ if(!file)return;
+
+ if(videoURL)URL.revokeObjectURL(videoURL);
+ videoURL=URL.createObjectURL(file);
+ video.src=videoURL;
+
+ document.getElementById('fileName').textContent=file.name;
+ status.textContent="Video cargado correctamente.";
+});
+
+video.addEventListener('loadedmetadata',()=>{
+ document.getElementById('duration').textContent=
+ "Duración: "+video.duration.toFixed(1)+" segundos";
+
+ endInput.value=Math.min(15,video.duration);
+ endInput.max=video.duration;
+ startInput.max=video.duration;
+});
+
+function previewClip(){
+ if(!videoURL){
+  status.textContent="Primero selecciona un video.";
+  return;
+ }
+
+ const start=Number(startInput.value);
+ const end=Number(endInput.value);
+
+ if(start<0||end<=start||end>video.duration){
+  status.textContent="Revisa el inicio y el final.";
+  return;
+ }
+
+ stopAt=end;
+ video.currentTime=start;
+ video.play();
+ status.textContent="Reproduciendo el fragmento elegido.";
+}
+
+video.addEventListener('timeupdate',()=>{
+ if(stopAt!==null&&video.currentTime>=stopAt){
+  video.pause();
+  stopAt=null;
+  status.textContent="Previsualización terminada.";
+ }
+});
+</script>
+
+</body>
+</html>

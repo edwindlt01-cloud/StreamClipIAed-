@@ -195,20 +195,24 @@ loadBtn.onclick=async()=>{
   const base=
   'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd';
 
-  await ffmpeg.load({
+  
+await ffmpeg.load({
+ 
+    'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm/worker.js',
+    'text/javascript'
+  ),
+
   coreURL: await toBlobURL(
-    base+'/ffmpeg-core.js',
+    base + '/ffmpeg-core.js',
     'text/javascript'
   ),
+
   wasmURL: await toBlobURL(
-    base+'/ffmpeg-core.wasm',
+    base + '/ffmpeg-core.wasm',
     'application/wasm'
-  ),
-  workerURL: await toBlobURL(
-    base+'/ffmpeg-core.worker.js',
-    'text/javascript'
   )
 });
+
 
   loaded=true;
   exportBtn.disabled=false;
